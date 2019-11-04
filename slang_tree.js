@@ -125,7 +125,7 @@ slang.Tree = class
     /* translator */
     tr(str)
     {
-        var token = str.trim();
+        var token = str.replace(/^[\s|\n|\r|\r\n]+|[\s|\n|\r|\r\n]+$/g, '');
         /* to ignore single tags */
         var tokens = token.split(/<br.*>|<input.*>|<img.*>|<hr.*>|<a\s+.*\/a>|<span.*\/>|<strong.*\/>|<font.*\/font>|<i.*\/i>/i);
         if(0 < tokens.length)
@@ -137,7 +137,7 @@ slang.Tree = class
                 {
                     continue;
                 }
-                text = text.trim();
+                text = text.replace(/^[\s|\n|\r|\r\n]+|[\s|\n|\r|\r\n]+$/g, '');
                 if(!text)
                 {
                     continue;

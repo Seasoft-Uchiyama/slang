@@ -14,12 +14,13 @@ var slang = slang || {};
 /* change the base folder and language folder name */
 slang.custom = function(obj)
 {
-    var folder_en = 'images/';
-    var folder_ja = 'images_' + slang.translating_language + '/';
+    var folder_from = slang.IMAGEPATH;
+    var folder_target = slang.IMAGEDIR + '_' + slang.translating_language + '/';
     $(obj).find('img').each(function(){
         var src = $(this).attr('src');
-        var dest = src.replace(folder_en, folder_ja);
-        if(src !== dest)
+        var dest = src.replace(folder_from, folder_target);
+        // ver,2.1.0 add to check exists file
+        if(slang.exists(dest) == true)
         {
             var now = new Date();
             var time = now.getTime();

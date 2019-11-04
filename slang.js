@@ -5,15 +5,21 @@
 *  Copyright (c) 2019 by Seasoft Corporation. All rights reserved.
 *  Made in Japan. https://seasoft.co.jp/
 *  This software is released under the MIT License, see License.txt.
+*
+*  Ver 1.00 2019/08/03 Dictionary
+*  Ver 2.00 2019/10/24 RedBlackTree
+*  Ver 2.10 2019/10/31 add class slang-notr, slang-if, slang-else 
 *********/
 /* namespace */
 var slang = slang || {};
 
-slang.VERSION = 2.0;
+slang.VERSION = 2.10;
 slang.WEB_ROOT = location.protocol + "//" + location.host;
 
 /* Translation files are placed in the following folder on the website */
 slang.TRANSLATION_DIR = '/translation';
+slang.IMAGEDIR = 'images';
+slang.IMAGEPATH = slang.IMAGEDIR + '/';
 
 /* Make a non-English language choice associative array */
 /* The key is the language file extension */
@@ -44,8 +50,9 @@ slang.LANGUAGES = {
 slang.translating_language = '';
 
 /* style sheet classes definitions */
-slang.css_tr = 'slang';
+slang.css_tr    = 'slang';
 slang.css_group = 'slang-group';
+slang.css_notr  = 'slang-notr';
 
 /* common files parameter key */
 /* 
@@ -57,28 +64,8 @@ slang.common_key = 'include';
 /* read the xml translation files */
 slang.loadTranslateFiles = function()
 {
-    var base = $('html')[0].lang;
-    if(0 < base.length)
-    {
-        base = base.substr(0, 2);
-    }
-    else
-    {
-        base = 'en';
-    }
-    
-    var lang = slang.getParameter('lang');
-    /* URL parameter 'lang=xx' take precedence. */
-    if(lang === null)
-    {
-        /* Get the browser default language */
-        var language = (window.navigator.languages && window.navigator.languages[0]) ||
-            window.navigator.language ||
-            window.navigator.userLanguage ||
-            window.navigator.browserLanguage;
-        /* cut 2 characters for language symbol (file extention) */
-        lang = language.substr(0, 2);
-    }
+    var base = slang.getBaseLanguage();
+    var lang = slang.getTargetLanguage();
     if(lang === base)
     {
         return false;
@@ -86,6 +73,7 @@ slang.loadTranslateFiles = function()
     /* check ES6 */
     if(!(typeof Symbol === "function" && typeof Symbol() === "symbol"))
     {
+        // only japanese translation view next message!
         if(lang == 'ja')
         {
             alert('お使いのブラウザでは翻訳機能が動作しません。\nモダンブラウザをご利用ください');
@@ -98,34 +86,97 @@ slang.loadTranslateFiles = function()
     {
         pathname = '/index.html';
     }
-    for(var ext in slang.LANGUAGES)
+    /* use variable 'lang' for file extention */
+    var ext = lang;
+    var key = ext + '_tree';
+    slang._current_tree = new slang.Tree(lang);
+    slang.LANGUAGES[key] = slang._current_tree;
+    
+    /* get common pair files */
+    var path = pathname.substring(0, pathname.lastIndexOf('/')) + '/';
+    var common_files = slang.get_common_files();
+    var filename;
+    if(common_files && (0 < common_files.length))
     {
-        /* if defined the translation languages, execute translating */
-        if(ext === lang)
+        for(var i = 0; i < common_files.length; i++)
         {
-            var key = ext + '_tree';
-            
-            slang._current_tree = new slang.Tree(language);
-            slang.LANGUAGES[key] = slang._current_tree;
-            
-            /* get common pair files */
-            var path = pathname.substring(0, pathname.lastIndexOf('/')) + '/';
-            var common_files = slang.get_common_files();
-            if(common_files && (0 < common_files.length))
+            filename = slang.WEB_ROOT + slang.TRANSLATION_DIR + path + common_files[i] + '.' + ext;
+            if(slang.exists(filename))
             {
-                for(var i = 0; i < common_files.length; i++)
-                {
-                    var filename = slang.WEB_ROOT + slang.TRANSLATION_DIR + path + common_files[i] + '.' + ext;
-                    rc &= slang.loadTranslateFile(ext, slang.LANGUAGES[ext], filename);
-                }
+                rc &= slang.loadTranslateFile(ext, filename);
             }
-            /* file name of the page */
-            var filename = slang.WEB_ROOT + slang.TRANSLATION_DIR + pathname + '.' + ext;
-            rc &= slang.loadTranslateFile(ext, slang.LANGUAGES[ext], filename);
+        }
+    }
+    /* file name of the page */
+    filename = slang.WEB_ROOT + slang.TRANSLATION_DIR + pathname + '.' + ext;
+    if(slang.exists(filename))
+    {
+        rc &= slang.loadTranslateFile(ext, filename);
+    }
+
+    return rc;
+}
+
+/* get based language of html */
+slang.getBaseLanguage = function()
+{
+    /* page base language by parameter */
+    var base = slang.getParameter('base');
+    if((base !== null) && (0 < base.length))
+    {
+        return base;
+    }
+    /* html5 <html lang=''> format */
+    base = $('html')[0].lang;
+    if((base !== null) && (0 < base.length))
+    {
+        return base;
+    }
+    /* <body lang=''> format */
+    base = $('body')[0].lang;
+    if((base !== null) && (0 < base.length))
+    {
+        return base;
+    }
+    var head = $('head');
+    var headChildren = head.children();
+    var childrenLength = headChildren.length;
+    for(var i = 0; i < childrenLength; i++)
+    {
+        var metaName = headChildren.eq(i).attr('http-equiv');
+        if(metaName === 'Content-Language')
+        {
+            base = headChildren.eq(i).attr('content');
             break;
         }
     }
-    return rc;
+    if((base !== null) && (0 < base.length))
+    {
+        return base;
+    }
+    
+    /* default language is English */
+    return 'en';
+}
+
+slang.getTargetLanguage = function()
+{
+    var lang = slang.getParameter('lang');
+    /* URL parameter 'lang=xx' take precedence. */
+    if(lang === null)
+    {
+        /* Get the browser default language */
+        lang = (window.navigator.languages && window.navigator.languages[0]) ||
+            window.navigator.language ||
+            window.navigator.userLanguage ||
+            window.navigator.browserLanguage;
+    }
+    if((lang === null) || (lang.length == 0))
+    {
+        /* default target language is English */
+        lang = 'en';
+    }
+    return lang;
 }
 
 /* get URL parameter symbols */
@@ -189,13 +240,27 @@ slang.getScriptParameter = function(filename, key)
     return null;
 }
 
-/* read file async function */
-slang.loadTranslateFile = function(ext, language, filename)
+/* check file exists*/
+slang.exists = function(url)
 {
-    /*
-    * if you want to display wait message while translating, execulte this.
-    */
-    // slang.dispLoading("Loading resource file for :" + language + " ...");
+    var rc = false;
+    try
+    {
+        var request = new XMLHttpRequest();
+        request.open('HEAD', url, false);
+        request.send();
+        rc = (request.status == 200) ? true : false;
+    }
+    catch
+    {
+        rc = false;
+    }
+    return rc;
+}
+
+/* read file async function */
+slang.loadTranslateFile = function(ext, filename)
+{
     var errmsg = "";
     var rc = false;
     $.ajax({
@@ -210,11 +275,9 @@ slang.loadTranslateFile = function(ext, language, filename)
         },
         success: function(data){
             var xml = $(data);
-            rc = slang.onLoadResource(ext, language, xml);
+            rc = slang.onLoadResource(ext, xml);
         },
         complete: function(data){
-            /* call removeLoading function if you show translating message */
-            // slang.removeLoading();
             if(errmsg != "")
             {
                 /* display alert message when errors occured. */
@@ -232,7 +295,7 @@ slang.loadTranslateFile = function(ext, language, filename)
 
 /* analyze XML translation file */
 slang._current_tree = null;
-slang.onLoadResource = function(ext, language, xml)
+slang.onLoadResource = function(ext, xml)
 {
     var obj = null;
     try
@@ -301,6 +364,12 @@ slang.translate_tags = function()
 {
     /* begin into group */
     var group_changed = false;
+    
+    if($(this).hasClass(slang.css_notr))
+    {
+        return;
+    }
+    
     if($(this).hasClass(slang.css_group))
     {
         var id = $(this).attr('id');
@@ -315,7 +384,7 @@ slang.translate_tags = function()
     $(this).children().each(slang.translate_tags);
 
     /* translate current node. */
-    var text = $(this).text().trim();
+    var text = $(this).text().replace(/^[\s|\n|\r|\r\n]+|[\s|\n|\r|\r\n]+$/g, '');
     if((text !== null) && (text !== ''))
     {
         var html = $(this).html();
