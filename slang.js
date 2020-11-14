@@ -9,11 +9,12 @@
 *  Ver 1.00 2019/08/03 Dictionary
 *  Ver 2.00 2019/10/24 RedBlackTree
 *  Ver 2.10 2019/10/31 add class slang-notr, slang-if, slang-else 
+*  Ver 2.20 2020/11/14 Support IE 11.
 *********/
 /* namespace */
 var slang = slang || {};
 
-slang.VERSION = 2.10;
+slang.VERSION = 2.20;
 slang.WEB_ROOT = location.protocol + "//" + location.host;
 
 /* Translation files are placed in the following folder on the website */
@@ -71,6 +72,7 @@ slang.loadTranslateFiles = function()
         return false;
     }
     /* check ES6 */
+    /*
     if(!(typeof Symbol === "function" && typeof Symbol() === "symbol"))
     {
         // only japanese translation view next message!
@@ -80,6 +82,7 @@ slang.loadTranslateFiles = function()
             return false;
         }
     }
+    */
     var rc = true;
     var pathname = location.pathname;
     if(pathname === '/')
@@ -103,7 +106,7 @@ slang.loadTranslateFiles = function()
             filename = slang.WEB_ROOT + slang.TRANSLATION_DIR + path + common_files[i] + '.' + ext;
             if(slang.exists(filename))
             {
-                rc &= slang.loadTranslateFile(ext, filename);
+                rc = rc && slang.loadTranslateFile(ext, filename);
             }
         }
     }
@@ -111,11 +114,11 @@ slang.loadTranslateFiles = function()
     filename = slang.WEB_ROOT + slang.TRANSLATION_DIR + pathname + '.' + ext;
     if(slang.exists(filename))
     {
-        rc &= slang.loadTranslateFile(ext, filename);
+        rc = rc && slang.loadTranslateFile(ext, filename);
     }
 
     return rc;
-}
+};
 
 /* get based language of html */
 slang.getBaseLanguage = function()
@@ -157,7 +160,7 @@ slang.getBaseLanguage = function()
     
     /* default language is English */
     return 'en';
-}
+};
 
 slang.getTargetLanguage = function()
 {
@@ -170,6 +173,10 @@ slang.getTargetLanguage = function()
             window.navigator.language ||
             window.navigator.userLanguage ||
             window.navigator.browserLanguage;
+        if(2 < lang.length)
+        {
+            lang = lang.substr(0, 2);
+        }
     }
     if((lang === null) || (lang.length == 0))
     {
@@ -177,7 +184,7 @@ slang.getTargetLanguage = function()
         lang = 'en';
     }
     return lang;
-}
+};
 
 /* get URL parameter symbols */
 slang.getParameter = function(name, url)
@@ -189,7 +196,7 @@ slang.getParameter = function(name, url)
     if (!results) return null;
     if (!results[2]) return '';
     return decodeURIComponent(results[2].replace(/\+/g, " "));
-}
+};
 
 /* get common file names from script parameter */
 slang.get_common_files = function()
@@ -201,7 +208,7 @@ slang.get_common_files = function()
         files = value.split(',');
     }
     return files;
-}
+};
 
 /* get script parameter symbols */
 slang.getScriptParameter = function(filename, key)
@@ -238,7 +245,7 @@ slang.getScriptParameter = function(filename, key)
     }
 
     return null;
-}
+};
 
 /* check file exists*/
 slang.exists = function(url)
@@ -251,12 +258,12 @@ slang.exists = function(url)
         request.send();
         rc = (request.status == 200) ? true : false;
     }
-    catch
+    catch(e)
     {
         rc = false;
     }
     return rc;
-}
+};
 
 /* read file async function */
 slang.loadTranslateFile = function(ext, filename)
@@ -291,7 +298,7 @@ slang.loadTranslateFile = function(ext, filename)
             return rc;
         }
     });
-}
+};
 
 /* analyze XML translation file */
 slang._current_tree = null;
@@ -312,7 +319,7 @@ slang.onLoadResource = function(ext, xml)
         return false;
     }
     return true;
-}
+};
 
 slang.load_group = function()
 {
@@ -334,7 +341,7 @@ slang.load_group = function()
         $(this).find('String').each(slang.set_value);
         slang._current_tree.end();
     }
-}
+};
 
 /* set language translation pair to the current node */
 slang.set_value = function()
@@ -347,7 +354,7 @@ slang.set_value = function()
         value = value.trim();
         slang._current_tree.current_node.regist(key, value);
     }
-}
+};
 
 /* execute translation by specific language. */
 slang.translate = function(lang)
@@ -357,7 +364,7 @@ slang.translate = function(lang)
     slang._current_tree = slang.LANGUAGES[key];
     /* translate each tags of slang class */
     $('.' + slang.css_tr).each(slang.translate_tags);
-}
+};
 
 /* translate the sentences in HTML tags */
 slang.translate_tags = function()
@@ -419,7 +426,7 @@ slang.translate_tags = function()
     {
         slang._current_tree.end();
     }
-}
+};
 
 /* execute on loaded web page at first. */
 slang.addOnloadEvent = function(fnc)
@@ -432,7 +439,7 @@ slang.addOnloadEvent = function(fnc)
     {  
         window.attachEvent("onload", fnc);  
     }
-}
+};
 
 /* The first function on loaded web page */
 slang.addOnloadEvent(slang.loadTranslateFiles);

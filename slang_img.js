@@ -28,4 +28,4 @@ slang.custom = function(obj)
            $(this).attr('src', dest + '?t=' + time);
         }
     });
-}
+};
